@@ -1,0 +1,75 @@
+# ============================================================
+# CloudOps AI Copilot — Docker Compose (Local Development)
+# ============================================================
+# Usage: docker compose -f docker/docker-compose.yml up --build
+# Or:    make dev
+
+services:
+  # ----- PostgreSQL + pgvector -----
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: cloudops-db
+    environment:
+      POSTGRES_DB: cloudops_copilot
+      POSTGRES_USER: copilot
+      POSTGRES_PASSWORD: copilot_secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U copilot -d cloudops_copilot"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ----- FastAPI Backend -----
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: cloudops-backend
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+    environment:
+      DATABASE_URL: postgresql+asyncpg://copilot:copilot_secret@db:5432/cloudops_copilot
+      APP_ENV: development
+      DEBUG: "true"
+      CORS_ORIGINS: '["http://localhost:3000","http://127.0.0.1:3000"]'
+    env_file:
+      - ../backend/.env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ----- Next.js Frontend -----
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: cloudops-frontend
+    command: npm run dev
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+    driver: local
