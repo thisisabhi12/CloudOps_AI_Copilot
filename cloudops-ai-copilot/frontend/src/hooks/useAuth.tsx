@@ -25,17 +25,18 @@ interface AuthState {
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(() =>
-    authApi.isAuthenticated() ? authApi.getUser() : null
-  );
-  const [isLoading, setIsLoading] = useState(() => authApi.isAuthenticated());
+  // Initialize to a server-safe state to avoid hydration mismatches;
+  // localStorage is only read after mount in the effect below.
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   // Check for existing session on mount
   useEffect(() => {
     if (authApi.isAuthenticated()) {
-      // Verify token is still valid
+      // Optimistically restore the cached user, then verify the token
+      setUser(authApi.getUser());
       authApi
         .getProfile()
         .then(setUser)
@@ -44,6 +45,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null);
         })
         .finally(() => setIsLoading(false));
+    } else {
+      setIsLoading(false);
     }
   }, []);
 
