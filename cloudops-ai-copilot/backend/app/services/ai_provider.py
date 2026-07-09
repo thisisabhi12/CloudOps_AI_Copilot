@@ -205,6 +205,59 @@ class OpenAIProvider(AIProvider):
         return response.data[0].embedding
 
 
+class GatewayProvider(AIProvider):
+    """
+    Vercel AI Gateway provider (OpenAI-compatible API).
+
+    Used as a zero-config default when no direct provider API key
+    (Gemini / Anthropic / OpenAI) is configured.
+    """
+
+    def __init__(self):
+        from openai import AsyncOpenAI
+
+        if not settings.ai_gateway_api_key:
+            raise ValueError("AI_GATEWAY_API_KEY is not configured")
+
+        self._client = AsyncOpenAI(
+            api_key=settings.ai_gateway_api_key,
+            base_url=settings.ai_gateway_base_url,
+        )
+        logger.info("Vercel AI Gateway provider initialized")
+
+    async def generate(
+        self,
+        messages: list[dict[str, str]],
+        system_prompt: Optional[str] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 4096,
+    ) -> AsyncIterator[str]:
+        """Generate streaming response through the AI Gateway."""
+        gateway_messages = []
+        if system_prompt:
+            gateway_messages.append({"role": "system", "content": system_prompt})
+        gateway_messages.extend(messages)
+
+        stream = await self._client.chat.completions.create(
+            model="openai/gpt-4o-mini",
+            messages=gateway_messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stream=True,
+        )
+        async for chunk in stream:
+            if chunk.choices and chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
+
+    async def embed(self, text: str) -> list[float]:
+        """Generate embedding through the AI Gateway."""
+        response = await self._client.embeddings.create(
+            model="openai/text-embedding-3-small",
+            input=text,
+        )
+        return response.data[0].embedding
+
+
 # ----- Provider Factory -----
 
 # Cache instantiated providers to avoid re-initialization
@@ -234,6 +287,7 @@ def get_ai_provider(provider_name: Optional[str] = None) -> AIProvider:
         "gemini": GeminiProvider,
         "claude": ClaudeProvider,
         "openai": OpenAIProvider,
+        "gateway": GatewayProvider,
     }
 
     if name not in providers:
@@ -247,4 +301,15 @@ def get_ai_provider(provider_name: Optional[str] = None) -> AIProvider:
         _provider_cache[name] = provider
         return provider
     except ValueError as e:
+        # Fall back to the Vercel AI Gateway if the requested provider
+        # is missing its API key but the gateway is configured.
+        if name != "gateway" and settings.ai_gateway_api_key:
+            logger.warning(
+                f"Provider '{name}' unavailable ({e}); "
+                "falling back to Vercel AI Gateway."
+            )
+            gateway = _provider_cache.get("gateway") or GatewayProvider()
+            _provider_cache["gateway"] = gateway
+            _provider_cache[name] = gateway
+            return gateway
         raise ValueError(f"Failed to initialize {name} provider: {e}")
