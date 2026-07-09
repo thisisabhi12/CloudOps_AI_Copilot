@@ -132,7 +132,7 @@ export default function ChatPage() {
 
   // Load sessions on mount
   useEffect(() => {
-    fetchSessions();
+    queueMicrotask(fetchSessions);
   }, [fetchSessions]);
 
   // Scroll to bottom helper
@@ -163,7 +163,7 @@ export default function ChatPage() {
         handleNewChat();
       }
       fetchSessions();
-    } catch (err) {
+    } catch {
       setError("Failed to delete chat session.");
     }
   };
@@ -199,7 +199,6 @@ export default function ChatPage() {
 
     setMessages((prev) => [...prev, assistantMsg]);
 
-    let sessionUpdated = false;
     let accumulatedContent = "";
 
     try {
@@ -211,9 +210,8 @@ export default function ChatPage() {
           try {
             const data = JSON.parse(chunk.data);
             setActiveSessionId(data.session_id);
-            sessionUpdated = true;
-          } catch (e) {
-            console.error("Session event parse error:", e);
+          } catch (error) {
+            console.error("Session event parse error:", error);
           }
         } else if (chunk.event === "chunk") {
           try {
@@ -226,14 +224,14 @@ export default function ChatPage() {
                   : msg
               )
             );
-          } catch (e) {
-            console.error("Chunk event parse error:", e);
+          } catch (error) {
+            console.error("Chunk event parse error:", error);
           }
         } else if (chunk.event === "error") {
           try {
             const data = JSON.parse(chunk.data);
             setError(data.error);
-          } catch (e) {
+          } catch {
             setError("Error in AI stream.");
           }
         }

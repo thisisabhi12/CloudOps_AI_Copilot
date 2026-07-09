@@ -193,14 +193,14 @@ export default function ArchitecturePage() {
             const data = JSON.parse(chunk.data);
             accumulatedContent += data.content;
             setAdviceResult(accumulatedContent);
-          } catch (e) {
-            console.error("Chunk parse error:", e);
+          } catch (error) {
+            console.error("Chunk parse error:", error);
           }
         } else if (chunk.event === "error") {
           try {
             const data = JSON.parse(chunk.data);
             setError(data.error);
-          } catch (e) {
+          } catch {
             setError("Error occurred during advice generation.");
           }
         }

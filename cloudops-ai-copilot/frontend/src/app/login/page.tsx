@@ -15,7 +15,6 @@ export default function LoginPage() {
   useEffect(() => {
     // Clear errors on mount
     clearError();
-    setFormError(null);
     // If already authenticated, redirect
     if (isAuthenticated) {
       router.push("/");
@@ -34,7 +33,7 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-    } catch (err) {
+    } catch {
       // Errors are handled by the useAuth hook and stored in `error`
     }
   };
@@ -173,7 +172,7 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-6 text-center text-xs text-text-secondary">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link
               href="/register"
               className="text-accent hover:text-accent-hover font-medium underline underline-offset-4"

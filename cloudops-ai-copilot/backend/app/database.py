@@ -5,6 +5,7 @@ Async SQLAlchemy engine and session factory using asyncpg.
 Provides get_db dependency for FastAPI route injection.
 """
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -56,9 +57,7 @@ async def check_db_connection() -> bool:
     """Check if the database is reachable."""
     try:
         async with engine.connect() as conn:
-            await conn.execute(
-                __import__("sqlalchemy").text("SELECT 1")
-            )
+            await conn.execute(text("SELECT 1"))
         return True
     except Exception:
         return False

@@ -32,6 +32,22 @@ async def lifespan(app: FastAPI):
     logger.info(f"   Environment: {settings.app_env}")
     logger.info(f"   Debug: {settings.debug}")
     logger.info(f"   Default AI Provider: {settings.default_ai_provider}")
+    
+    # Auto-create tables on startup
+    try:
+        from app.database import engine, Base
+        # Import models so SQLAlchemy metadata knows about them
+        from app.models.user import User  # noqa: F401
+        from app.models.chat import ChatSession, ChatMessage  # noqa: F401
+        from app.models.document import DocumentChunk  # noqa: F401
+        
+        logger.info("Initializing database tables...")
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database tables initialized successfully.")
+    except Exception as e:
+        logger.error(f"Failed to initialize database tables: {e}")
+
     yield
     logger.info(f"👋 Shutting down {settings.app_name}")
 

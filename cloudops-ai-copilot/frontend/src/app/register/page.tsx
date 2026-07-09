@@ -16,7 +16,6 @@ export default function RegisterPage() {
   useEffect(() => {
     // Clear errors on mount
     clearError();
-    setFormError(null);
     // If already authenticated, redirect
     if (isAuthenticated) {
       router.push("/");
@@ -40,7 +39,7 @@ export default function RegisterPage() {
 
     try {
       await register(email, username, password);
-    } catch (err) {
+    } catch {
       // Errors are handled by useAuth and stored in `error`
     }
   };

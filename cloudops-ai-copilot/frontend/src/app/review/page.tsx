@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import AuthGuard from "../auth-guard";
 import DashboardLayout from "../components/dashboard-layout";
 import { reviewApi, ApiError } from "@/lib/api";
@@ -149,17 +149,17 @@ spec:
 
 export default function ReviewPage() {
   const [reviewType, setReviewType] = useState<ReviewType>("terraform");
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(TEMPLATES.terraform);
   const [filename, setFilename] = useState("");
   const [provider, setProvider] = useState("gemini");
   const [reviewResult, setReviewResult] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Set template code when type changes
-  useEffect(() => {
-    setCode(TEMPLATES[reviewType]);
-  }, [reviewType]);
+  const handleReviewTypeChange = (nextReviewType: ReviewType) => {
+    setReviewType(nextReviewType);
+    setCode(TEMPLATES[nextReviewType]);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -198,14 +198,14 @@ export default function ReviewPage() {
             const data = JSON.parse(chunk.data);
             accumulatedContent += data.content;
             setReviewResult(accumulatedContent);
-          } catch (e) {
-            console.error("Chunk parse error:", e);
+          } catch (error) {
+            console.error("Chunk parse error:", error);
           }
         } else if (chunk.event === "error") {
           try {
             const data = JSON.parse(chunk.data);
             setError(data.error);
-          } catch (e) {
+          } catch {
             setError("Error occurred during code review.");
           }
         }
@@ -245,7 +245,7 @@ export default function ReviewPage() {
                   </label>
                   <select
                     value={reviewType}
-                    onChange={(e) => setReviewType(e.target.value as ReviewType)}
+                    onChange={(e) => handleReviewTypeChange(e.target.value as ReviewType)}
                     disabled={isStreaming}
                     className="input-field py-2"
                   >

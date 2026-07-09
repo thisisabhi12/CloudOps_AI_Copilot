@@ -25,16 +25,16 @@ interface AuthState {
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(() =>
+    authApi.isAuthenticated() ? authApi.getUser() : null
+  );
+  const [isLoading, setIsLoading] = useState(() => authApi.isAuthenticated());
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   // Check for existing session on mount
   useEffect(() => {
-    const savedUser = authApi.getUser();
-    if (savedUser && authApi.isAuthenticated()) {
-      setUser(savedUser);
+    if (authApi.isAuthenticated()) {
       // Verify token is still valid
       authApi
         .getProfile()
@@ -44,8 +44,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null);
         })
         .finally(() => setIsLoading(false));
-    } else {
-      setIsLoading(false);
     }
   }, []);
 
