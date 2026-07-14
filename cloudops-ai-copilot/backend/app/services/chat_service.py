@@ -250,5 +250,5 @@ async def delete_session(
     if not session:
         return False
     await db.delete(session)
-    await db.flush()
+    await db.commit()
     return True
