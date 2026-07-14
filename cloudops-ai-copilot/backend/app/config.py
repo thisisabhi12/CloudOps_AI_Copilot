@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     gemini_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None
     openai_api_key: Optional[str] = None
+    openrouter_api_key: Optional[str] = None
     # Vercel AI Gateway (OpenAI-compatible endpoint)
     ai_gateway_api_key: Optional[str] = None
     ai_gateway_base_url: str = "https://ai-gateway.vercel.sh/v1"
@@ -62,6 +63,7 @@ class Settings(BaseSettings):
         "env_file": ".env",
         "env_file_encoding": "utf-8",
         "case_sensitive": False,
+        "extra": "ignore",
     }
 
 

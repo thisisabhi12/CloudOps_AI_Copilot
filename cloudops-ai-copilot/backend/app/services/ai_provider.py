@@ -161,7 +161,7 @@ class ClaudeProvider(AIProvider):
 
 
 class OpenAIProvider(AIProvider):
-    """OpenAI GPT AI provider."""
+    """OpenAI GPT AI provider (supports OpenRouter fallback)."""
 
     def __init__(self):
         from openai import AsyncOpenAI
@@ -169,8 +169,14 @@ class OpenAIProvider(AIProvider):
         if not settings.openai_api_key:
             raise ValueError("OPENAI_API_KEY is not configured")
 
-        self._client = AsyncOpenAI(api_key=settings.openai_api_key)
-        logger.info("OpenAI provider initialized")
+        # Auto-detect OpenRouter keys
+        self._is_openrouter = settings.openai_api_key.startswith("sk-or-")
+        base_url = "https://openrouter.ai/api/v1" if self._is_openrouter else None
+
+        self._client = AsyncOpenAI(api_key=settings.openai_api_key, base_url=base_url)
+        self._model = "openai/gpt-4o" if self._is_openrouter else "gpt-4o"
+        self._embed_model = "openai/text-embedding-3-small" if self._is_openrouter else "text-embedding-3-small"
+        logger.info(f"OpenAI provider initialized (OpenRouter={self._is_openrouter})")
 
     async def generate(
         self,
@@ -179,27 +185,36 @@ class OpenAIProvider(AIProvider):
         temperature: float = 0.7,
         max_tokens: int = 4096,
     ) -> AsyncIterator[str]:
-        """Generate streaming response using OpenAI GPT."""
+        """Generate streaming response using OpenAI GPT / OpenRouter."""
         openai_messages = []
         if system_prompt:
             openai_messages.append({"role": "system", "content": system_prompt})
         openai_messages.extend(messages)
 
+        # OpenRouter-specific header additions if needed (optional but good practice)
+        extra_headers = {}
+        if self._is_openrouter:
+            extra_headers = {
+                "HTTP-Referer": "http://localhost:3000",
+                "X-Title": "CloudOps AI Copilot",
+            }
+
         stream = await self._client.chat.completions.create(
-            model="gpt-4o",
+            model=self._model,
             messages=openai_messages,
             temperature=temperature,
             max_tokens=max_tokens,
             stream=True,
+            extra_headers=extra_headers if self._is_openrouter else None
         )
         async for chunk in stream:
-            if chunk.choices[0].delta.content:
+            if chunk.choices and chunk.choices[0].delta.content:
                 yield chunk.choices[0].delta.content
 
     async def embed(self, text: str) -> list[float]:
-        """Generate embedding using OpenAI text-embedding-3-small."""
+        """Generate embedding using OpenAI / OpenRouter embedding model."""
         response = await self._client.embeddings.create(
-            model="text-embedding-3-small",
+            model=self._embed_model,
             input=text,
         )
         return response.data[0].embedding

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import AuthGuard from "./auth-guard";
 import DashboardLayout from "./components/dashboard-layout";
 import { chatApi, ApiError } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 import type { ChatSession, ChatMessage } from "@/lib/types";
 
 // Safe, zero-dependency Markdown Parser for React Nodes
@@ -97,6 +98,7 @@ function renderMarkdown(content: string) {
 }
 
 export default function ChatPage() {
+  const { isAuthenticated } = useAuth();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -130,10 +132,12 @@ export default function ChatPage() {
     }
   }, []);
 
-  // Load sessions on mount
+  // Load sessions on mount when authenticated
   useEffect(() => {
-    queueMicrotask(fetchSessions);
-  }, [fetchSessions]);
+    if (isAuthenticated) {
+      fetchSessions();
+    }
+  }, [fetchSessions, isAuthenticated]);
 
   // Scroll to bottom helper
   const scrollToBottom = () => {
