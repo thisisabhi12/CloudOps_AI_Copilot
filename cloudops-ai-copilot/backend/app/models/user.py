@@ -7,9 +7,8 @@ Roles: admin, devops, developer, readonly.
 
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, Boolean, DateTime, Enum as SAEnum
+from sqlalchemy import String, Boolean, DateTime, Enum as SAEnum, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID
 import enum
 
 from app.database import Base
@@ -28,7 +27,7 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(),
         primary_key=True,
         default=uuid.uuid4,
     )

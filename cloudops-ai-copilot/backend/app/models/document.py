@@ -1,29 +1,29 @@
 """
 CloudOps AI Copilot — Document Model (RAG)
 
-Stores document chunks and their vector embeddings
-for retrieval-augmented generation (RAG) with pgvector.
+Stores document chunks and their metadata for
+retrieval-augmented generation (RAG).
+Vector embeddings are stored when a compatible backend (pgvector) is available.
 """
 
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, Text, DateTime
+from sqlalchemy import String, Text, DateTime, Uuid, JSON
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.dialects.postgresql import UUID, JSONB
-from pgvector.sqlalchemy import Vector
 
 from app.database import Base
 
 
 class DocumentChunk(Base):
     """
-    A chunk of a document stored with its vector embedding.
+    A chunk of a document stored with its metadata.
     Used for semantic search in the RAG pipeline.
+    Note: Vector embedding support requires PostgreSQL with pgvector.
     """
     __tablename__ = "document_chunks"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(),
         primary_key=True,
         default=uuid.uuid4,
     )
@@ -40,15 +40,17 @@ class DocumentChunk(Base):
     )
     metadata_: Mapped[dict | None] = mapped_column(
         "metadata",
-        JSONB,
+        JSON,
         nullable=True,
         default=None,
         comment="Additional metadata (section, page, tags, etc.)",
     )
-    embedding = mapped_column(
-        Vector(768),
+    # Note: Vector embedding column is only available with pgvector on PostgreSQL.
+    # For SQLite, embeddings can be stored as JSON arrays if needed.
+    embedding_json: Mapped[str | None] = mapped_column(
+        Text,
         nullable=True,
-        comment="768-dimensional embedding vector (Gemini text-embedding-004)",
+        comment="768-dimensional embedding vector stored as JSON array (SQLite fallback)",
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

@@ -22,7 +22,7 @@ class Settings(BaseSettings):
 
     # ----- Database -----
     database_url: str = (
-        "postgresql+asyncpg://copilot:copilot_secret@localhost:5432/cloudops_copilot"
+        "sqlite+aiosqlite:///./cloudops_copilot.db"
     )
 
     # ----- Auth / JWT -----

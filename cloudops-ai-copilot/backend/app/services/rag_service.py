@@ -49,7 +49,7 @@ async def embed_and_store_chunk(
         content=content,
         source=source,
         metadata_=metadata,
-        embedding=embedding,
+        embedding_json=str(embedding),
     )
     db.add(chunk)
     await db.flush()

@@ -7,9 +7,8 @@ persisting AI conversation history.
 
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, Text, DateTime, ForeignKey, Enum as SAEnum
+from sqlalchemy import String, Text, DateTime, ForeignKey, Enum as SAEnum, Uuid, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID, JSONB
 import enum
 
 from app.database import Base
@@ -37,12 +36,12 @@ class ChatSession(Base):
     __tablename__ = "chat_sessions"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(),
         primary_key=True,
         default=uuid.uuid4,
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -87,12 +86,12 @@ class ChatMessage(Base):
     __tablename__ = "chat_messages"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(),
         primary_key=True,
         default=uuid.uuid4,
     )
     session_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(),
         ForeignKey("chat_sessions.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -107,7 +106,7 @@ class ChatMessage(Base):
     )
     metadata_: Mapped[dict | None] = mapped_column(
         "metadata",
-        JSONB,
+        JSON,
         nullable=True,
         default=None,
     )
